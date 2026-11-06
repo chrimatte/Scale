@@ -1,8 +1,8 @@
-# Esempio iniziale: i dati sono fittizi. Sostituiscili nelle Impostazioni di Scale.
+# Starter example with fictional data. Replace it in Scale Settings.
 version: 1
 users:
-  - name: Atleta
-    slug: atleta
+  - name: Athlete
+    slug: athlete
     height: 170
     birth_date: "2000-01-01"
     gender: female

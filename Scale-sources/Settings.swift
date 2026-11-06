@@ -15,7 +15,7 @@ import AppKit
     @Published var busy = true
     @Published var loaded = false
     @Published var saved = false
-    @Published var message = "Caricamento del profilo…"
+    @Published var message = "Loading your profile…"
     @Published var failed = false
     private var process: Process?
     private var buffer = ""
@@ -28,7 +28,7 @@ import AppKit
     private func numberText(_ value: Any?) -> String {
         guard let number = value as? NSNumber else { return "" }
         let formatter = NumberFormatter()
-        formatter.locale = Locale(identifier: "it_IT")
+        formatter.locale = Locale(identifier: "en_US")
         formatter.usesGroupingSeparator = false
         formatter.minimumFractionDigits = 0; formatter.maximumFractionDigits = 2
         return formatter.string(from: number) ?? ""
@@ -43,10 +43,10 @@ import AppKit
         let root = Bundle.main.object(forInfoDictionaryKey: "ScaleProjectRoot") as? String ?? ""
         let node = URL(fileURLWithPath: root).appendingPathComponent("../work/runtime/node_modules/.bin/node").standardized.path
         guard let helper = Bundle.main.url(forResource: "bridge", withExtension: "mjs") else {
-            busy = false; failed = true; message = "Impossibile aprire le impostazioni."; return
+            busy = false; failed = true; message = "Could not open settings."; return
         }
         busy = true; failed = false; received = false; buffer = ""
-        message = action == "settings-save" ? "Verifico Intervals.icu prima di salvare…" : "Caricamento del profilo…"
+        message = action == "settings-save" ? "Checking Intervals.icu before saving…" : "Loading your profile…"
         let task = Process(), output = Pipe(), input = Pipe(), errors = Pipe()
         task.executableURL = URL(fileURLWithPath: node)
         task.arguments = [helper.path, "--root", root, "--action", action]
@@ -64,7 +64,7 @@ import AppKit
                 guard let self else { return }
                 self.process = nil; self.busy = false
                 if !self.received {
-                    self.failed = true; self.message = "Impossibile completare l’operazione. Riprova."
+                    self.failed = true; self.message = "Could not complete the operation. Try again."
                 }
             }
         }
@@ -75,7 +75,7 @@ import AppKit
             try input.fileHandleForWriting.close()
         } catch {
             if task.isRunning { task.terminate() }; process = nil; busy = false; failed = true
-            message = "Impossibile accedere alla configurazione. Riprova."
+            message = "Could not access the configuration. Try again."
         }
     }
     private func consume(_ text: String) {
@@ -91,11 +91,11 @@ import AppKit
                 gender = event["gender"] as? String ?? "male"; athlete = event["isAthlete"] as? Bool ?? false
                 athleteID = event["athleteId"] as? String ?? ""; scaleID = event["scaleId"] as? String ?? ""
                 hasKey = event["hasKey"] as? Bool ?? false; apiKey = ""
-                loaded = true; message = "I dati vengono salvati solo quando premi Salva e verifica."
+                loaded = true; message = "Changes are saved only when you click Save and verify."
             } else if type == "settings-saved" {
-                saved = true; hasKey = true; apiKey = ""; message = event["message"] as? String ?? "Impostazioni salvate."
+                saved = true; hasKey = true; apiKey = ""; message = event["message"] as? String ?? "Settings saved."
             } else if type == "error" {
-                failed = true; message = event["message"] as? String ?? "Impossibile salvare."
+                failed = true; message = event["message"] as? String ?? "Could not save settings."
             } else { continue }
             received = true
         }
@@ -110,8 +110,8 @@ struct SettingsView: View {
         VStack(spacing: 0) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Impostazioni").font(.title2.weight(.semibold))
-                    Text("Il tuo profilo, la tua bilancia.").foregroundStyle(.secondary)
+                    Text("Settings").font(.title2.weight(.semibold))
+                    Text("Your profile, your scale.").foregroundStyle(.secondary)
                 }
                 Spacer()
             }.padding(24)
@@ -131,11 +131,11 @@ struct SettingsView: View {
                     Text(form.message).font(.callout).fixedSize(horizontal: false, vertical: true)
                 }
                 HStack {
-                    Link("Dove trovo la chiave API? ↗", destination: URL(string: "https://intervals.icu/settings")!).font(.caption)
+                    Link("Where can I find my API key? ↗", destination: URL(string: "https://intervals.icu/settings")!).font(.caption)
                     Spacer()
-                    Button(form.saved ? "Fine" : "Annulla") { dismiss() }
+                    Button(form.saved ? "Done" : "Cancel") { dismiss() }
                         .keyboardShortcut(.cancelAction).disabled(form.busy)
-                    Button("Salva e verifica") { form.save() }
+                    Button("Save and verify") { form.save() }
                         .buttonStyle(.borderedProminent).keyboardShortcut(.defaultAction)
                         .disabled(form.busy || form.saved || !form.loaded)
                 }
@@ -147,34 +147,34 @@ struct SettingsView: View {
         .interactiveDismissDisabled(form.busy)
     }
     private var profileSection: some View {
-        Section("Profilo personale") {
-            TextField("Nome", text: $form.name)
-            TextField("Altezza (cm)", text: $form.height)
-            DatePicker("Data di nascita", selection: $form.birthDate, in: ...Date(), displayedComponents: .date)
+        Section("Personal profile") {
+            TextField("Name", text: $form.name)
+            TextField("Height (cm)", text: $form.height)
+            DatePicker("Date of birth", selection: $form.birthDate, in: ...Date(), displayedComponents: .date)
                 .environment(\.timeZone, TimeZone(secondsFromGMT: 0)!)
-                .environment(\.locale, Locale(identifier: "it_IT"))
-            Picker("Sesso del profilo Renpho", selection: $form.gender) {
-                Text("Maschile").tag("male")
-                Text("Femminile").tag("female")
+                .environment(\.locale, Locale(identifier: "en_US"))
+            Picker("Renpho profile sex", selection: $form.gender) {
+                Text("Male").tag("male")
+                Text("Female").tag("female")
             }
-            TextField("Peso indicativo (kg)", text: $form.weight)
-            Toggle("Modalità atleta", isOn: $form.athlete)
+            TextField("Approximate weight (kg)", text: $form.weight)
+            Toggle("Athlete mode", isOn: $form.athlete)
         }
     }
     private var intervalsSection: some View {
         Section {
-            TextField("ID atleta", text: $form.athleteID, prompt: Text("i123456"))
-            SecureField("Chiave API", text: $form.apiKey, prompt: Text(form.hasKey ? "Già salvata: lascia vuoto per mantenerla" : "Incolla la tua chiave API"))
-            if form.hasKey { Label("Chiave salvata su questo Mac", systemImage: "lock").font(.caption).foregroundStyle(.secondary) }
+            TextField("Athlete ID", text: $form.athleteID, prompt: Text("i123456"))
+            SecureField("API key", text: $form.apiKey, prompt: Text(form.hasKey ? "Already saved: leave blank to keep it" : "Paste your API key"))
+            if form.hasKey { Label("Key saved on this Mac", systemImage: "lock").font(.caption).foregroundStyle(.secondary) }
         } header: { Text("Intervals.icu") }
-        footer: { Text("La chiave resta protetta nella configurazione locale. Una nuova chiave sostituisce la precedente solo dopo la verifica del collegamento.") }
+        footer: { Text("The key is kept in the local configuration. A new key replaces the previous one only after the connection is verified.") }
     }
     private var scaleSection: some View {
         Section {
-            LabeledContent("Bilancia", value: "Renpho ES-CS20M")
-            TextField("Identificativo Bluetooth", text: $form.scaleID)
+            LabeledContent("Scale", value: "Renpho ES-CS20M")
+            TextField("Bluetooth identifier", text: $form.scaleID)
                 .font(.system(.body, design: .monospaced))
-        } header: { Text("Bilancia") }
-        footer: { Text("Identificativo già rilevato per la tua bilancia. Modificalo solo se cambi dispositivo.") }
+        } header: { Text("Scale") }
+        footer: { Text("Identifier previously detected for your scale. Change it only when switching devices.") }
     }
 }

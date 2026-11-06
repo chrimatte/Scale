@@ -4,7 +4,7 @@ import AppKit
 @MainActor
 final class ScaleModel: ObservableObject {
     @Published var stage = "idle"
-    @Published var message = "Una pesata, senza aprire il Terminale."
+    @Published var message = "Weigh in without opening Terminal."
     @Published var weight: Double?
     @Published var fat: Double?
     @Published var date = ""
@@ -19,18 +19,18 @@ final class ScaleModel: ObservableObject {
     private var token = UUID()
     private var activity: NSObjectProtocol?
 
-    var weightText: String { weight.map { String(format: "%.1f", locale: Locale(identifier: "it_IT"), $0) } ?? "—" }
+    var weightText: String { weight.map { String(format: "%.1f", locale: Locale(identifier: "en_US"), $0) } ?? "—" }
     var title: String {
         switch stage {
-        case "checking": return "Controllo del collegamento"
-        case "scanning": return "Accendi la bilancia"
-        case "ready": return "Puoi salire"
-        case "measuring": return "Peso acquisito"
-        case "uploading", "verifying": return "Quasi fatto"
-        case "success": return "Pesata sincronizzata"
-        case "error": return "Riproviamo?"
-        case "cancelled": return "Pesata interrotta"
-        default: return "Pronto per la tua pesata"
+        case "checking": return "Checking the connection"
+        case "scanning": return "Wake up the scale"
+        case "ready": return "Step on the scale"
+        case "measuring": return "Weight recorded"
+        case "uploading", "verifying": return "Almost done"
+        case "success": return "Weigh-in synced"
+        case "error": return "Try again?"
+        case "cancelled": return "Weigh-in cancelled"
+        default: return "Ready for your weigh-in"
         }
     }
     func launch(measure: Bool) {
@@ -38,13 +38,13 @@ final class ScaleModel: ObservableObject {
         let root = Bundle.main.object(forInfoDictionaryKey: "ScaleProjectRoot") as? String ?? ""
         let node = URL(fileURLWithPath: root).appendingPathComponent("../work/runtime/node_modules/.bin/node").standardized.path
         guard let helper = Bundle.main.url(forResource: "bridge", withExtension: "mjs"), FileManager.default.isExecutableFile(atPath: node) else {
-            stage = "error"; message = "Non trovo il progetto. Ripristina la cartella completa di Scale oppure ricompila e reinstalla l’app dopo averla spostata."; return
+            stage = "error"; message = "The project could not be found. Restore the complete Scale folder, or rebuild and reinstall the app after moving it."; return
         }
         token = UUID(); let current = token
-        stage = "checking"; message = "Verifico il collegamento a Intervals.icu…"
+        stage = "checking"; message = "Checking the connection to Intervals.icu…"
         busy = true; buffer = ""; isNewReading = false
         if measure { weight = nil; fat = nil }
-        activity = ProcessInfo.processInfo.beginActivity(options: [.userInitiated, .idleSystemSleepDisabled], reason: "Pesata Bluetooth in corso")
+        activity = ProcessInfo.processInfo.beginActivity(options: [.userInitiated, .idleSystemSleepDisabled], reason: "Bluetooth weigh-in in progress")
         let task = Process(); let output = Pipe(); let errors = Pipe()
         task.executableURL = URL(fileURLWithPath: node)
         task.arguments = [helper.path, "--root", root, "--action", measure ? "measure" : "check"] + (measure && estimate ? ["--estimate"] : [])
@@ -64,9 +64,9 @@ final class ScaleModel: ObservableObject {
                 self.finishActivity()
                 self.busy = false; self.process = nil; self.pipe = nil
                 if self.stage == "checking" && task.terminationStatus == 0 {
-                    self.stage = "idle"; self.message = "Collegamento verificato. Avvia quando sei pronto."
+                    self.stage = "idle"; self.message = "Connection verified. Start when you are ready."
                 } else if !["success", "error", "cancelled"].contains(self.stage) {
-                    self.stage = "error"; self.message = "La lettura si è interrotta. Controlla Bluetooth e connessione, poi riprova."
+                    self.stage = "error"; self.message = "The reading was interrupted. Check Bluetooth and your Internet connection, then try again."
                 }
             }
         }
@@ -74,7 +74,7 @@ final class ScaleModel: ObservableObject {
         do { try task.run() } catch {
             output.fileHandleForReading.readabilityHandler = nil; errors.fileHandleForReading.readabilityHandler = nil
             busy = false; finishActivity(); process = nil
-            stage = "error"; message = "Impossibile avviare la pesata. Controlla che la cartella del progetto sia disponibile."
+            stage = "error"; message = "Could not start the weigh-in. Check that the project folder is available."
         }
     }
     private func consume(_ text: String, token current: UUID) {
@@ -95,13 +95,13 @@ final class ScaleModel: ObservableObject {
                 }
             case "measurement":
                 weight = event["weight"] as? Double; isNewReading = true
-                stage = "measuring"; message = "Resta fermo finché la bilancia termina."
+                stage = "measuring"; message = "Stand still until the scale finishes."
             case "success":
                 weight = event["weight"] as? Double; fat = event["bodyFat"] as? Double
                 date = event["date"] as? String ?? date; isNewReading = true
-                stage = "success"; message = "Salvata su Intervals.icu e verificata. Puoi scendere."
+                stage = "success"; message = "Saved to Intervals.icu and verified. You can step off."
             case "error":
-                stage = "error"; message = event["message"] as? String ?? "Qualcosa non ha funzionato. Riprova."
+                stage = "error"; message = event["message"] as? String ?? "Something went wrong. Try again."
             default: break
             }
         }
@@ -112,7 +112,7 @@ final class ScaleModel: ObservableObject {
     func cancel() {
         guard let task = process, task.isRunning else { return }
         stage = "cancelled"
-        message = "Lettura fermata. Un invio già completato resta su Intervals.icu."
+        message = "Reading stopped. Any data already uploaded remains on Intervals.icu."
         task.terminate()
         // The helper owns cleanup of its Bluetooth child before it exits.
         DispatchQueue.main.asyncAfter(deadline: .now() + 4) { if task.isRunning { task.interrupt() } }
@@ -140,8 +140,8 @@ struct ContentView: View {
         .background(Color(nsColor: .windowBackgroundColor))
         .onAppear { model.launch(measure: false) }
         .toolbar {
-            Button { model.settingsPresented = true } label: { Label("Impostazioni", systemImage: "gearshape") }
-                .disabled(model.busy).help("Profilo e collegamento Intervals.icu")
+            Button { model.settingsPresented = true } label: { Label("Settings", systemImage: "gearshape") }
+                .disabled(model.busy).help("Profile and Intervals.icu connection")
         }
         .sheet(isPresented: $model.settingsPresented) {
             SettingsView { model.connected = false; model.launch(measure: false) }
@@ -157,23 +157,23 @@ struct ContentView: View {
                 Text("Renpho → Intervals.icu").font(.subheadline).foregroundStyle(.secondary)
             }
             Spacer()
-            Label(model.connected ? "Collegato" : "Da verificare", systemImage: model.connected ? "checkmark.circle" : "circle.dashed")
+            Label(model.connected ? "Connected" : "Not verified", systemImage: model.connected ? "checkmark.circle" : "circle.dashed")
                 .font(.caption).foregroundStyle(.secondary)
         }
     }
     private var weightDisplay: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(model.isNewReading ? "LA TUA PESATA" : "SU INTERVALS OGGI")
+            Text(model.isNewReading ? "YOUR WEIGH-IN" : "ON INTERVALS TODAY")
                 .font(.caption.weight(.medium)).tracking(1.4).foregroundStyle(.secondary)
             HStack(alignment: .firstTextBaseline, spacing: 10) {
                 Text(model.weightText).font(.system(size: weightSize, weight: .light, design: .rounded)).monospacedDigit()
                 Text("kg").font(.title2).foregroundStyle(.secondary)
             }
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel("Peso")
-            .accessibilityValue(model.weight.map { "\($0) chilogrammi" } ?? "Nessun peso disponibile")
+            .accessibilityLabel("Weight")
+            .accessibilityValue(model.weight == nil ? "No weight available" : "\(model.weightText) kilograms")
             if model.stage == "success", let fat = model.fat {
-                Text(String(format: "Grasso stimato: %.1f%%", locale: Locale(identifier: "it_IT"), fat))
+                Text(String(format: "Estimated body fat: %.1f%%", locale: Locale(identifier: "en_US"), fat))
                     .font(.subheadline).foregroundStyle(.secondary)
             }
         }
@@ -195,9 +195,9 @@ struct ContentView: View {
         .frame(maxWidth: .infinity, minHeight: 80, alignment: .topLeading)
     }
     private var buttonTitle: String {
-        if model.stage == "success" { return "Nuova pesata" }
-        if model.stage == "error" { return "Riprova la pesata" }
-        return "Avvia pesata"
+        if model.stage == "success" { return "New weigh-in" }
+        if model.stage == "error" { return "Retry weigh-in" }
+        return "Start weigh-in"
     }
     private var actions: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -207,25 +207,25 @@ struct ContentView: View {
             .buttonStyle(.borderedProminent).controlSize(.large).tint(accent)
             .keyboardShortcut(.defaultAction).disabled(model.busy)
             if model.busy {
-                Button("Interrompi") { model.cancel() }
+                Button("Stop") { model.cancel() }
                     .keyboardShortcut(.cancelAction).frame(maxWidth: .infinity)
             }
         }
     }
     private var options: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Toggle("Invia anche il grasso stimato", isOn: $model.estimate)
+            Toggle("Include estimated body fat", isOn: $model.estimate)
                 .toggleStyle(.checkbox).disabled(model.busy)
-            Text("Questa connessione legge solo il peso. La stima del grasso non è il valore mostrato dall’app Renpho.")
+            Text("This connection reads weight only. Estimated body fat differs from the value shown in the Renpho app.")
                 .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
         }
     }
     private var footer: some View {
         HStack(alignment: .top) {
-            Text("Chiudi Renpho sul telefono.\nTieni il Mac acceso e vicino alla bilancia.")
+            Text("Close Renpho on your phone.\nKeep your Mac awake and near the scale.")
                 .font(.caption).foregroundStyle(.secondary)
             Spacer(minLength: 12)
-            Link("Apri Intervals.icu ↗", destination: URL(string: "https://intervals.icu")!)
+            Link("Open Intervals.icu ↗", destination: URL(string: "https://intervals.icu")!)
                 .font(.caption)
         }
     }
@@ -252,7 +252,7 @@ struct ContentView: View {
         .commands {
             CommandGroup(replacing: .newItem) {}
             CommandGroup(replacing: .appSettings) {
-                Button("Impostazioni…") { model.settingsPresented = true }
+                Button("Settings…") { model.settingsPresented = true }
                     .keyboardShortcut(",", modifiers: .command).disabled(model.busy)
             }
         }
