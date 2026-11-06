@@ -32,8 +32,8 @@ try {
     const {settingsAction}=await import('./settings.mjs');
     let input={};
     if(action==='settings-save') {
-      let data='';for await(const chunk of process.stdin){data+=chunk;if(data.length>16000)throw Error('Dati impostazioni troppo lunghi.');}
-      try{input=JSON.parse(data);}catch{throw Error('Dati impostazioni non validi.');}
+      let data='';for await(const chunk of process.stdin){data+=chunk;if(data.length>16000)throw Error('Settings data is too long.');}
+      try{input=JSON.parse(data);}catch{throw Error('Invalid settings data.');}
     }
     emit(await settingsAction(root,action,input));process.exit(0);
   }
@@ -41,16 +41,16 @@ try {
   const {config}=loadAppConfig();
   const user=config.users.find(u=>u.exporters?.some(e=>e.type==='intervals'));
   const entry=user?.exporters.find(e=>e.type==='intervals');
-  if(!entry?.api_key) throw Error('Chiave Intervals.icu assente. Completa il collegamento iniziale.');
+  if(!entry?.api_key) throw Error('Intervals.icu API key is missing. Complete the initial connection setup.');
   const base='https://intervals.icu/api/v1/athlete/'+encodeURIComponent(entry.athlete_id);
   const headers={Authorization:'Basic '+btoa('API_KEY:'+entry.api_key)};
   const get=async path=>{
     const response=await fetch(base+path,{headers,signal:AbortSignal.timeout(10000)});
-    if(response.status===401||response.status===403)throw Error('Chiave Intervals.icu non valida o senza accesso.');
-    if(!response.ok)throw Error('Intervals.icu non disponibile (HTTP '+response.status+'). Riprova.');
+    if(response.status===401||response.status===403)throw Error('Intervals.icu API key is invalid or lacks access.');
+    if(!response.ok)throw Error('Intervals.icu is unavailable (HTTP '+response.status+'). Try again.');
     return response.json();
   };
-  emit({type:'status',stage:'checking',message:'Controllo del collegamento…'});
+  emit({type:'status',stage:'checking',message:'Checking the connection…'});
   const profile=await get('');
   const date=dayInZone(profile.timezone||'Europe/Rome');
   const today=await get('/wellness/'+date);
@@ -63,8 +63,8 @@ try {
     if(error.code!=='EEXIST')throw error;
     let stale=false;
     try{const pid=Number(readFileSync(lockPath,'utf8'));if(!Number.isInteger(pid)||pid<=0)stale=true;else{try{process.kill(pid,0);}catch(e){if(e.code==='ESRCH')stale=true;}}}catch{}
-    if(stale){try{unlinkSync(lockPath);acquire();}catch{throw Error('Impossibile avviare una nuova pesata. Riprova.');}}
-    else throw Error('Una pesata è già in corso. Chiudi l’altra finestra e riprova.');
+    if(stale){try{unlinkSync(lockPath);acquire();}catch{throw Error('Could not start a new weigh-in. Try again.');}}
+    else throw Error('A weigh-in is already in progress. Close the other window and try again.');
   }
   const yaml=await import(pathToFileURL(join(root,'node_modules/yaml/dist/index.js')));
   const raw=yaml.parse(readFileSync(join(root,'config.yaml'),'utf8'));
@@ -76,7 +76,7 @@ try {
   raw.runtime={...raw.runtime,continuous_mode:false,retry_failed_exports:false,dry_run:false,debug:false};
   raw.update_check=false;
   const configPath=join(stateDir,'config.yaml');writeFileSync(configPath,yaml.stringify(raw),{mode:0o600});
-  emit({type:'status',stage:'scanning',message:'Cerco la Renpho. Tocca la bilancia per accenderla.'});
+  emit({type:'status',stage:'scanning',message:'Looking for your Renpho. Tap the scale to wake it up.'});
   child=spawn(process.execPath,[join(root,'dist/index.js'),'--config',configPath],{
     cwd:root,env:{...process.env,CONTINUOUS_MODE:'false',TZ:'Europe/Rome'},stdio:['ignore','pipe','pipe']
   });
@@ -92,9 +92,9 @@ try {
     if(event.type!=='uploaded'){emit(event);return;}
     finished=true;
     try{
-      emit({type:'status',stage:'verifying',message:'Invio completato. Verifico i dati salvati…'});
+      emit({type:'status',stage:'verifying',message:'Upload complete. Verifying the saved data…'});
       const actual=await get('/wellness/'+event.date);
-      if(!verifyReading(actual,weight,bodyFat,estimate))throw Error('Invio eseguito, ma i valori riletti non coincidono. Controlla Intervals.icu.');
+      if(!verifyReading(actual,weight,bodyFat,estimate))throw Error('Upload completed, but the values read back do not match. Check Intervals.icu.');
       await stop();releaseLock();
       emit({type:'success',weight:actual.weight,bodyFat:estimate?actual.bodyFat:null,date:event.date,estimated:estimate});
       process.exit(0);
@@ -105,9 +105,9 @@ try {
     for(const line of lines)void consume(line);
   });
   child.stderr.on('data',()=>{});
-  child.on('error',()=>void fail('Impossibile avviare la lettura della bilancia.'));
+  child.on('error',()=>void fail('Could not start reading the scale.'));
   child.on('exit',code=>{
-    if(!finished&&!closing)void fail(code===0?'Nessuna pesata acquisita. Accendi la bilancia e riprova.':'Lettura interrotta. Controlla Bluetooth, distanza e che Renpho sul telefono sia chiusa.');
+    if(!finished&&!closing)void fail(code===0?'No weigh-in recorded. Wake up the scale and try again.':'Reading interrupted. Check Bluetooth, move closer and close Renpho on your phone.');
   });
-  setTimeout(()=>void fail('Tempo scaduto. Avvicina il Mac, chiudi Renpho sul telefono e riprova.'),150000).unref();
-}catch(error){await stop();releaseLock();emit({type:'error',message: /fetch|network|ENOTFOUND/i.test(error.message)?'Connessione Internet non disponibile. Controlla la rete e riprova.':error.message});process.exit(1);}
+  setTimeout(()=>void fail('Timed out. Move your Mac closer, close Renpho on your phone and try again.'),150000).unref();
+}catch(error){await stop();releaseLock();emit({type:'error',message: /fetch|network|ENOTFOUND/i.test(error.message)?'No Internet connection. Check your network and try again.':error.message});process.exit(1);}

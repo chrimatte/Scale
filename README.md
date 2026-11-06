@@ -1,85 +1,85 @@
-# Scale per Mac — da Renpho a Intervals.icu
+# Scale for Mac — from Renpho to Intervals.icu
 
-<img src="Scale-icona.png" alt="Icona di Scale: una bilancia stilizzata" width="120">
+<img src="Scale-icon.png" alt="Scale icon: a stylized weighing scale" width="120">
 
-Scale è un'app per macOS che usa [ble-scale-sync](https://github.com/KristianP26/ble-scale-sync) per leggere il peso da una bilancia Renpho ES-CS20M e sincronizzarlo con Intervals.icu. Dall'interfaccia puoi avviare una pesata: Scale invia il risultato e verifica il salvataggio rileggendo il servizio.
+Scale is a macOS app that uses [ble-scale-sync](https://github.com/KristianP26/ble-scale-sync) to read weight from a Renpho ES-CS20M scale and sync it with Intervals.icu. Start a weigh-in from the app: Scale uploads the result and verifies it by reading the saved data back from the service.
 
-L'integrazione è stata sviluppata per la Renpho ES-CS20M e non è stata verificata con le altre bilance supportate dal motore. Scale è un progetto indipendente, non affiliato né approvato da Renpho o Intervals.icu.
+The integration was developed for the Renpho ES-CS20M and has not been verified with the other scales supported by the engine. Scale is an independent project, unaffiliated with and not endorsed by Renpho or Intervals.icu.
 
-[Installa da sorgente](#installazione-da-sorgente) · [Come funziona](#come-funziona) · [Privacy e dati](#privacy-e-dati) · [Sviluppo](CONTRIBUTING.md)
+[Install from source](#installation-from-source) · [How it works](#how-it-works) · [Privacy and data](#privacy-and-data) · [Development](CONTRIBUTING.md)
 
-## Schermate
+## Screenshots
 
-| Pesata | Impostazioni |
+| Weigh-in | Settings |
 | --- | --- |
-| ![Schermata principale con peso e pulsante Avvia pesata](docs/images/scale-pesata.png) | ![Impostazioni del profilo e di Intervals.icu con dati oscurati](docs/images/scale-impostazioni.png) |
+| ![Main screen with weight and Start weigh-in button](docs/images/scale-weigh-in.png) | ![Profile and Intervals.icu settings with fictional data](docs/images/scale-settings.png) |
 
-Le schermate mostrano una versione precedente dell'icona; l'icona attuale è quella mostrata sopra.
+Screenshots use fictional profile and measurement data.
 
-## Come funziona
+## How it works
 
-1. Configura il profilo e il collegamento a Intervals.icu nelle impostazioni.
-2. Premi **Avvia pesata** e sali sulla bilancia, tenendo il Mac acceso e vicino al dispositivo. Chiudi l'app Renpho sul telefono.
-3. Scale acquisisce il peso tramite il motore BLE, lo invia a Intervals.icu e rilegge il servizio per verificare il risultato.
+1. Set up your profile and Intervals.icu connection in Settings.
+2. Click **Start weigh-in** and step on the scale, keeping your Mac awake and near the device. Close the Renpho app on your phone.
+3. Scale reads your weight through the BLE engine, uploads it to Intervals.icu and reads the saved data back to verify the result.
 
-Per impostazione iniziale viene inviato solo il peso. Puoi attivare l'invio del grasso stimato: è una stima e non il valore mostrato dall'app Renpho. Più pesate nello stesso giorno aggiornano il record giornaliero. L'app non importa lo storico Renpho e non è configurata per l'avvio automatico.
+Only weight is uploaded by default. You can enable estimated body fat: this is an estimate and differs from the value shown in the Renpho app. Multiple weigh-ins on the same day update the daily record. The app does not import Renpho history and is not configured to start automatically.
 
-## Requisiti
+## Requirements
 
-- Mac Apple Silicon con macOS 14 o successivo, Bluetooth e connessione Internet.
-- Apple Command Line Tools, Python 3, npm e Git. La compilazione del motore può richiedere gli strumenti nativi previsti da ble-scale-sync.
-- Una bilancia Renpho ES-CS20M, un account Intervals.icu e una chiave API personale.
+- Apple Silicon Mac with macOS 14 or later, Bluetooth and an Internet connection.
+- Apple Command Line Tools, Python 3, npm and Git. Building the engine may require the native tools specified by ble-scale-sync.
+- A Renpho ES-CS20M scale, an Intervals.icu account and a personal API key.
 
-## Installazione da sorgente
+## Installation from source
 
-È necessaria la compilazione locale: il repository non include un'app già pronta. Da Terminale, clona il progetto con il submodule del motore:
+A local build is required: the repository does not include a ready-to-use app. In Terminal, clone the project with the engine submodule:
 
 ```sh
 git clone --recurse-submodules https://github.com/chrimatte/Scale.git
 cd Scale
 ```
 
-Se hai già una copia senza submodule, esegui `git submodule update --init` dalla cartella del progetto. Poi, dalla radice:
+If you already have a copy without the submodule, run `git submodule update --init` from the project folder. Then, from the repository root:
 
 ```sh
 npm ci --prefix work/runtime
 export PATH="$PWD/work/runtime/node_modules/.bin:$PATH"
 npm ci --prefix ble-scale-sync
 npm run build --prefix ble-scale-sync
-cp -n Scale-sorgenti/config.yaml.example ble-scale-sync/config.yaml
+cp -n Scale-sources/config.yaml.example ble-scale-sync/config.yaml
 chmod 600 ble-scale-sync/config.yaml
-./Scale-sorgenti/build.sh
-./Scale-sorgenti/install.sh
+./Scale-sources/build.sh
+./Scale-sources/install.sh
 ```
 
-Il comando `cp -n` preserva un profilo già presente. Il modello iniziale contiene dati fittizi: apri `~/Applications/Scale.app`, vai in **Impostazioni**, inserisci profilo, ID atleta e chiave API di Intervals.icu, quindi scegli **Salva e verifica**. La verifica richiede una connessione al servizio.
+The `cp -n` command preserves an existing profile. The starter template contains fictional data: open `~/Applications/Scale.app`, go to **Settings**, enter your profile, Intervals.icu athlete ID and API key, then click **Save and verify**. Verification requires a connection to the service.
 
-La chiave viene salvata in `ble-scale-sync/.env` e il profilo in `ble-scale-sync/config.yaml`; entrambi sono locali ed esclusi da Git. La chiave viene inviata a Intervals.icu tramite HTTPS per autenticare le richieste. Non condividere quei file.
+The key is saved in `ble-scale-sync/.env` and the profile in `ble-scale-sync/config.yaml`; both are local and excluded from Git. The key is sent to Intervals.icu over HTTPS to authenticate requests. Do not share these files.
 
-L'app installata dipende dalla cartella del progetto e dal motore compilato: non spostarli o eliminarli. Se sposti la cartella completa, ricompila e reinstalla. Gli script mantengono copie precedenti in `work/backups`. Per i dettagli e i controlli consulta [CONTRIBUTING.md](CONTRIBUTING.md) e [Scale-sorgenti/README.md](Scale-sorgenti/README.md).
+The installed app depends on the project folder and the compiled engine: do not move or delete them. If you move the complete folder, rebuild and reinstall. The scripts keep previous copies in `work/backups`. See [CONTRIBUTING.md](CONTRIBUTING.md) and [Scale-sources/README.md](Scale-sources/README.md) for details and checks.
 
-## Avvio alternativo e sviluppo
+## Alternative launchers and development
 
-I due file `.command` nella cartella principale offrono un'interfaccia alternativa al motore: il primo verifica il collegamento a Intervals.icu, il secondo avvia la sincronizzazione continua. Richiedono un profilo configurato. Non usare contemporaneamente l'app e la sincronizzazione continua: accedono alla stessa bilancia.
+The two `.command` files in the root folder provide an alternative interface to the engine: `1 - Connect Intervals.command` verifies the Intervals.icu connection, and `2 - Start sync.command` starts continuous synchronization. They require a configured profile. Do not run the app and continuous synchronization at the same time: they access the same scale.
 
-Il repository contiene un riferimento Git al motore, scaricato separatamente dal progetto originale tramite submodule. Per contribuire, eseguire i test o aggiornare il motore consulta [CONTRIBUTING.md](CONTRIBUTING.md); per dettagli su compilazione e installazione consulta la [guida tecnica](Scale-sorgenti/README.md).
+The repository contains a Git reference to the engine, downloaded separately from the original project as a submodule. See [CONTRIBUTING.md](CONTRIBUTING.md) to contribute, run tests or update the engine; see the [technical guide](Scale-sources/README.md) for build and installation details.
 
-## Privacy e dati
+## Privacy and data
 
-Scale memorizza il profilo e la chiave API nel progetto sul Mac. Le pesate e i dati necessari al funzionamento sono conservati localmente e inviati a Intervals.icu; Scale legge anche i dati del servizio necessari alla verifica. Il progetto non prevede un server proprio di raccolta dati né funzioni di telemetria. Intervals.icu tratta i dati ricevuti secondo le proprie condizioni e la propria informativa privacy.
+Scale stores your profile and API key in the project folder on your Mac. Weigh-ins and data needed for operation are stored locally and sent to Intervals.icu; Scale also reads service data needed for verification. The project has no data collection server of its own and no telemetry features. Intervals.icu processes the data it receives according to its own terms and privacy policy.
 
-La chiave API dà accesso ai dati dell'account: ogni utente è responsabile della sua custodia e deve proteggere il proprio Mac e i backup, senza pubblicare `.env`, il profilo, le pesate o i log che possono contenerli. L'autore non assume responsabilità per la custodia o la divulgazione della chiave da parte dell'utente, nei limiti consentiti dalla legge. Se sospetti che la chiave sia stata esposta, rigenerala su Intervals.icu. L'uso dell'API è soggetto ai [termini di Intervals.icu](https://forum.intervals.icu/t/intervals-icu-api-terms-and-conditions/114087).
+The API key grants access to account data: each user is responsible for keeping it safe and protecting their Mac and backups, without publishing `.env`, their profile, weigh-ins or logs that may contain this information. To the extent permitted by law, the author accepts no liability for the user's storage or disclosure of the key. If you suspect the key has been exposed, regenerate it on Intervals.icu. API use is subject to the [Intervals.icu terms](https://forum.intervals.icu/t/intervals-icu-api-terms-and-conditions/114087).
 
-## Destinazione d'uso e responsabilità
+## Intended use and liability
 
-Scale è uno strumento amatoriale destinato al monitoraggio personale e al benessere. Non è un dispositivo medico e non è destinato a diagnosi, prevenzione o trattamento di condizioni mediche. Le informazioni e le stime fornite non sostituiscono il parere di un professionista sanitario.
+Scale is a hobby project intended for personal tracking and wellness. It is not a medical device and is not intended to diagnose, prevent or treat medical conditions. The information and estimates it provides do not replace advice from a healthcare professional.
 
-Il software è fornito senza garanzie, nei limiti consentiti dalla legge. L'autore non assume responsabilità per danni derivanti dall'uso, da errori di misurazione o sincronizzazione, né dalla disponibilità di servizi o dispositivi di terze parti, nei limiti consentiti dalla legge. Controlla i valori registrati su Intervals.icu e conserva backup dei dati importanti.
+The software is provided without warranties, to the extent permitted by law. To the extent permitted by law, the author accepts no liability for damages arising from use, measurement or synchronization errors, or the availability of third-party services or devices. Check the values recorded on Intervals.icu and keep backups of important data.
 
-## Realizzazione
+## Credits
 
-Scale è stato progettato e sviluppato con l'assistenza di [OpenAI Codex](https://openai.com/codex/). Il motore [ble-scale-sync](https://github.com/KristianP26/ble-scale-sync) è opera del progetto originale e dei suoi contributori. L'icona è stata generata con l'ausilio di intelligenza artificiale.
+Scale was designed and developed with assistance from [OpenAI Codex](https://openai.com/codex/). The [ble-scale-sync](https://github.com/KristianP26/ble-scale-sync) engine is the work of the original project and its contributors. The icon was generated with the help of artificial intelligence.
 
-## Licenza
+## License
 
-Il codice e le risorse originali di Scale sono distribuiti secondo la [GNU General Public License versione 3](LICENSE) (GPL-3.0-only). Il motore [ble-scale-sync](https://github.com/KristianP26/ble-scale-sync), sviluppato separatamente, mantiene la propria licenza GPL-3.0 e i relativi avvisi, disponibili nel suo repository.
+Original Scale code and assets are distributed under the [GNU General Public License version 3](LICENSE) (GPL-3.0-only). The separately developed [ble-scale-sync](https://github.com/KristianP26/ble-scale-sync) engine retains its own GPL-3.0 license and notices, available in its repository.

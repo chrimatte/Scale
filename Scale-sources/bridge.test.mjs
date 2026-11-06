@@ -10,7 +10,7 @@ function fixture(t,{wrongWeight=false}={}){
  const dir=mkdtempSync(join(tmpdir(),'scale-bridge-'));t.after(()=>rmSync(dir,{recursive:true,force:true}));const root=join(dir,'repo');
  for(const path of ['dist/config','node_modules/yaml/dist'])mkdirSync(join(root,path),{recursive:true});
  writeFileSync(join(root,'package.json'),JSON.stringify({type:'module'}));
- const config={users:[{slug:'atleta',exporters:[{type:'intervals',athlete_id:'i-test',api_key:'test-secret-never-log'}]}],runtime:{continuous_mode:true},global_exporters:[]};
+ const config={users:[{slug:'athlete',exporters:[{type:'intervals',athlete_id:'i-test',api_key:'test-secret-never-log'}]}],runtime:{continuous_mode:true},global_exporters:[]};
  writeFileSync(join(root,'dist/config/load.js'),`export const loadAppConfig=()=>({config:${JSON.stringify(config)}});`);
  writeFileSync(join(root,'config.yaml'),JSON.stringify(config));
  writeFileSync(join(root,'node_modules/yaml/dist/index.js'),'export const parse=JSON.parse;export const stringify=JSON.stringify;');

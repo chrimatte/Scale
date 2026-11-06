@@ -4,9 +4,9 @@ export function parseLine(line) {
   const fat = line.match(/bodyFatPercent: ([\d.]+)/);
   if (fat) return { type: 'fat', bodyFat: Number(fat[1]) };
   if (line.includes('wellness updated for')) return { type: 'uploaded', date: line.match(/updated for (\d{4}-\d{2}-\d{2})/)?.[1] };
-  if (line.includes('broadcast-only')) return { type: 'status', stage: 'ready', message: 'Bilancia trovata. Sali a piedi nudi e resta fermo.' };
-  if (line.includes('Listening for broadcast') || line.includes('Connected to')) return { type: 'status', stage: 'ready', message: 'Sali sulla bilancia e attendi il risultato.' };
-  if (line.includes('Exporting to:')) return { type: 'status', stage: 'uploading', message: 'Invio a Intervals.icu…' };
+  if (line.includes('broadcast-only')) return { type: 'status', stage: 'ready', message: 'Scale found. Step on barefoot and stand still.' };
+  if (line.includes('Listening for broadcast') || line.includes('Connected to')) return { type: 'status', stage: 'ready', message: 'Step on the scale and wait for the result.' };
+  if (line.includes('Exporting to:')) return { type: 'status', stage: 'uploading', message: 'Uploading to Intervals.icu…' };
   return null;
 }
 export function verifyReading(actual, weight, bodyFat, estimate) {
