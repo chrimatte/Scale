@@ -2,29 +2,37 @@
 
 <img src="Scale-icona.png" alt="Icona di Scale: una bilancia stilizzata" width="120">
 
-Scale è un'interfaccia per macOS che rende più semplice usare [ble-scale-sync](https://github.com/KristianP26/ble-scale-sync), il motore Bluetooth sviluppato dal progetto originale. Consente di leggere il peso da una bilancia Renpho ES-CS20M e caricarlo automaticamente su Intervals.icu: dopo aver configurato il proprio account, l'utente avvia una pesata dall'app e Scale gestisce lettura, invio e verifica del salvataggio.
+Scale è un'app per macOS che usa [ble-scale-sync](https://github.com/KristianP26/ble-scale-sync) per leggere il peso da una bilancia Renpho ES-CS20M e sincronizzarlo con Intervals.icu. Dall'interfaccia puoi avviare una pesata: Scale invia il risultato e verifica il salvataggio rileggendo il servizio.
 
-Il repository Scale contiene un riferimento Git al motore: i sorgenti di ble-scale-sync vengono scaricati separatamente dal repository originale tramite submodule. L'integrazione è stata sviluppata per questa bilancia; non è stata verificata con tutti i dispositivi supportati dal motore.
+L'integrazione è stata sviluppata per la Renpho ES-CS20M e non è stata verificata con le altre bilance supportate dal motore. Scale è un progetto indipendente, non affiliato né approvato da Renpho o Intervals.icu.
 
-Scale è un progetto non ufficiale e non è affiliato né approvato da Renpho o Intervals.icu. I rispettivi nomi identificano i prodotti e servizi compatibili.
-
-La modalità iniziale invia solo il peso. La stima del grasso è facoltativa e non corrisponde a una misurazione della bilancia. Scale rilegge il servizio dopo l'invio; più pesate nello stesso giorno aggiornano il record giornaliero.
+[Installa da sorgente](#installazione-da-sorgente) · [Come funziona](#come-funziona) · [Privacy e dati](#privacy-e-dati) · [Sviluppo](CONTRIBUTING.md)
 
 ## Schermate
 
 | Pesata | Impostazioni |
 | --- | --- |
-| ![Schermata principale di Scale](docs/images/scale-pesata.png) | ![Impostazioni di Scale con dati personali oscurati](docs/images/scale-impostazioni.png) |
+| ![Schermata principale con peso e pulsante Avvia pesata](docs/images/scale-pesata.png) | ![Impostazioni del profilo e di Intervals.icu con dati oscurati](docs/images/scale-impostazioni.png) |
+
+Le schermate mostrano una versione precedente dell'icona; l'icona attuale è quella mostrata sopra.
+
+## Come funziona
+
+1. Configura il profilo e il collegamento a Intervals.icu nelle impostazioni.
+2. Premi **Avvia pesata** e sali sulla bilancia, tenendo il Mac acceso e vicino al dispositivo. Chiudi l'app Renpho sul telefono.
+3. Scale acquisisce il peso tramite il motore BLE, lo invia a Intervals.icu e rilegge il servizio per verificare il risultato.
+
+Per impostazione iniziale viene inviato solo il peso. Puoi attivare l'invio del grasso stimato: è una stima e non il valore mostrato dall'app Renpho. Più pesate nello stesso giorno aggiornano il record giornaliero. L'app non importa lo storico Renpho e non è configurata per l'avvio automatico.
 
 ## Requisiti
 
 - Mac Apple Silicon con macOS 14 o successivo, Bluetooth e connessione Internet.
 - Apple Command Line Tools, Python 3, npm e Git. La compilazione del motore può richiedere gli strumenti nativi previsti da ble-scale-sync.
-- Un account Intervals.icu e una chiave API. Il codice e il runtime restano sul Mac; la pesata viene inviata a Intervals.icu.
+- Una bilancia Renpho ES-CS20M, un account Intervals.icu e una chiave API personale.
 
 ## Installazione da sorgente
 
-Da Terminale, clona il repository con il submodule:
+È necessaria la compilazione locale: il repository non include un'app già pronta. Da Terminale, clona il progetto con il submodule del motore:
 
 ```sh
 git clone --recurse-submodules https://github.com/chrimatte/Scale.git
@@ -44,15 +52,17 @@ chmod 600 ble-scale-sync/config.yaml
 ./Scale-sorgenti/install.sh
 ```
 
-Il comando `cp -n` preserva un profilo già presente. Il file contiene inizialmente dati fittizi, che devono essere sostituiti nelle impostazioni. Apri `~/Applications/Scale.app`, vai in **Impostazioni**, inserisci profilo, ID atleta e chiave API di Intervals.icu e scegli **Salva e verifica**. La verifica richiede una connessione al servizio. La chiave viene salvata in `ble-scale-sync/.env` e il profilo in `ble-scale-sync/config.yaml`; entrambi sono locali ed esclusi da Git. La chiave viene inviata a Intervals.icu tramite HTTPS per autenticare le richieste. Non condividere quei file.
+Il comando `cp -n` preserva un profilo già presente. Il modello iniziale contiene dati fittizi: apri `~/Applications/Scale.app`, vai in **Impostazioni**, inserisci profilo, ID atleta e chiave API di Intervals.icu, quindi scegli **Salva e verifica**. La verifica richiede una connessione al servizio.
+
+La chiave viene salvata in `ble-scale-sync/.env` e il profilo in `ble-scale-sync/config.yaml`; entrambi sono locali ed esclusi da Git. La chiave viene inviata a Intervals.icu tramite HTTPS per autenticare le richieste. Non condividere quei file.
 
 L'app installata dipende dalla cartella del progetto e dal motore compilato: non spostarli o eliminarli. Se sposti la cartella completa, ricompila e reinstalla. Gli script mantengono copie precedenti in `work/backups`. Per i dettagli e i controlli consulta [CONTRIBUTING.md](CONTRIBUTING.md) e [Scale-sorgenti/README.md](Scale-sorgenti/README.md).
 
-## Utilizzo
+## Avvio alternativo e sviluppo
 
-Apri Scale, attendi il collegamento, premi **Avvia pesata** e sali sulla bilancia. Chiudi l'app Renpho sul telefono e tieni il Mac acceso e vicino alla bilancia. Le opzioni del profilo si trovano in **Impostazioni**. Non utilizzare contemporaneamente l'app e gli script alternativi di sincronizzazione continua.
+I due file `.command` nella cartella principale offrono un'interfaccia alternativa al motore: il primo verifica il collegamento a Intervals.icu, il secondo avvia la sincronizzazione continua. Richiedono un profilo configurato. Non usare contemporaneamente l'app e la sincronizzazione continua: accedono alla stessa bilancia.
 
-L'app non importa lo storico Renpho e non è configurata per l'avvio automatico. Gli script `.command` sono un'interfaccia alternativa al motore e richiedono un profilo configurato.
+Il repository contiene un riferimento Git al motore, scaricato separatamente dal progetto originale tramite submodule. Per contribuire, eseguire i test o aggiornare il motore consulta [CONTRIBUTING.md](CONTRIBUTING.md); per dettagli su compilazione e installazione consulta la [guida tecnica](Scale-sorgenti/README.md).
 
 ## Privacy e dati
 

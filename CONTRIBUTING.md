@@ -39,10 +39,10 @@ chmod 600 ble-scale-sync/config.yaml
 La prima inizializzazione del sottomodulo scarica i sorgenti dal repository
 originale; gli archivi ZIP generati dal repository principale non li includono.
 Anche `npm ci` scarica dipendenze.
-I comandi di ripristino non servono sulla copia attuale già funzionante.
 Il repository non contiene credenziali, il profilo personale, lo stato delle
-pesate, i backup o l'app compilata. Per ripristinare questi dati serve il backup
-privato descritto in `LEGGIMI.md`. Git non sostituisce quel backup.
+pesate, i backup o l'app compilata. La configurazione iniziale è fittizia: inserisci
+il tuo profilo nelle impostazioni dell'app. Conserva separatamente e in modo
+privato gli eventuali backup dei dati locali: Git non li sostituisce.
 
 ## Controlli
 
@@ -82,5 +82,5 @@ python3 .githooks/pre-commit
 Se manca Gitleaks, il commit si ferma: rendere disponibile lo scanner prima di
 riprovare, senza bypassare l'hook. Il controllo riguarda i blob del repository
 principale; non scansiona i file privati ignorati, gli archivi o la storia del
-motore. Prima di una futura pubblicazione, verificare anche la storia delle ref
-da caricare. Nessun remoto del progetto Scale è configurato da questo setup.
+motore. Prima di pubblicare nuovi commit, verificare anche la storia delle ref
+da caricare.

@@ -10,7 +10,7 @@ L’app legge `ScaleProjectRoot` dal proprio `Info.plist`, impostato da `build.s
 
 La chiave resta in `ble-scale-sync/.env`, fuori dal bundle. Il profilo è in `ble-scale-sync/config.yaml`. Le impostazioni salvano entrambi con permessi `0600` dopo aver verificato il collegamento con una richiesta di sola lettura. I file di avvio alternativi usano gli stessi dati.
 
-`work/mac-app` contiene lo stato precedente delle pesate e la configurazione temporanea. I file di stato sono stati recuperati dalla vecchia posizione. La configurazione temporanea viene rigenerata a ogni pesata, conservando i marcatori contro i duplicati.
+`work/mac-app` contiene lo stato precedente delle pesate e la configurazione temporanea. La configurazione temporanea viene rigenerata a ogni pesata, conservando i marcatori contro i duplicati.
 
 ## Compilazione e installazione
 
@@ -21,7 +21,7 @@ Dalla cartella principale:
 ./Scale-sorgenti/install.sh
 ```
 
-Gli script funzionano anche se avviati da un’altra cartella. `build.sh` compila in una cartella temporanea, firma e verifica il nuovo bundle prima di sostituire `Scale.app`, conservando una copia precedente. Usa una sovrapposizione virtuale per evitare il modulo SwiftBridging duplicato nei Command Line Tools di questo Mac, senza modificare gli strumenti di sistema.
+Gli script funzionano anche se avviati da un’altra cartella. `build.sh` compila in una cartella temporanea, firma e verifica il nuovo bundle prima di sostituire `Scale.app`, conservando una copia precedente. Usa una sovrapposizione virtuale per evitare un modulo SwiftBridging duplicato in alcune installazioni dei Command Line Tools, senza modificare gli strumenti di sistema.
 
 `install.sh` richiede Scale chiusa e un bundle compilato per la posizione corrente del progetto. Verifica la firma e aggiorna `~/Applications/Scale.app`, conservando la versione precedente in `work/backups/install.*`. Identità dell’app e icona restano `local.chrimatte.scale` e `AppIcon.icns`; il Dock continua a puntare alla copia installata.
 
@@ -37,7 +37,7 @@ work/runtime/node_modules/.bin/node --test Scale-sorgenti/core.test.mjs Scale-so
 (cd ble-scale-sync && ../work/runtime/node_modules/.bin/node node_modules/typescript/bin/tsc --noEmit)
 ```
 
-I 15 test usano dati fittizi, connessioni simulate e cartelle temporanee; non inviano pesate e non modificano il profilo reale. I percorsi delle fixture dipendono dalla posizione dei file di test, non dalla cartella di lavoro.
+I test usano dati fittizi, connessioni simulate e cartelle temporanee; non inviano pesate e non modificano il profilo reale. I percorsi delle fixture dipendono dalla posizione dei file di test, non dalla cartella di lavoro.
 
 Per ricompilare il motore BLE già completo di dipendenze:
 
@@ -54,4 +54,4 @@ Per ricompilare il motore BLE già completo di dipendenze:
 - Impostazioni non modificabili durante una pesata; chiave vuota significa mantenere quella corrente.
 - Nessuna sostituzione dell’icona durante l’esecuzione.
 
-Le simulazioni non sostituiscono una pesata fisica. Il confronto completo tra aspetto chiaro/scuro e VoiceOver non sono stati verificati durante questa migrazione.
+Le simulazioni non sostituiscono una pesata fisica. Il confronto completo tra aspetto chiaro/scuro e VoiceOver non è stato verificato.
