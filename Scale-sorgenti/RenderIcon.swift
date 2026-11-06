@@ -5,9 +5,10 @@ let image = NSImage(size: NSSize(width: 1024, height: 1024))
 image.lockFocus()
 NSColor.clear.setFill()
 NSRect(x: 0, y: 0, width: 1024, height: 1024).fill()
-NSColor(srgbRed: 0.10, green: 0.46, blue: 0.40, alpha: 1).setFill()
+// Red sampled from the Intervals.icu reference; keep in sync with Scale.svg.
+NSColor(srgbRed: 222.0 / 255.0, green: 4.0 / 255.0, blue: 71.0 / 255.0, alpha: 1).setFill()
 NSBezierPath(roundedRect: NSRect(x: 100, y: 100, width: 824, height: 824), xRadius: 184, yRadius: 184).fill()
-NSColor(srgbRed: 0.98, green: 0.98, blue: 0.95, alpha: 1).setStroke()
+NSColor(srgbRed: 1, green: 1, blue: 1, alpha: 1).setStroke()
 let body = NSBezierPath(roundedRect: NSRect(x: 260, y: 256, width: 504, height: 520), xRadius: 76, yRadius: 76)
 body.lineWidth = 34
 body.stroke()
