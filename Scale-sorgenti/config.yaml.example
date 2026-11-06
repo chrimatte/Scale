@@ -1,0 +1,15 @@
+# Esempio iniziale: i dati sono fittizi. Sostituiscili nelle Impostazioni di Scale.
+version: 1
+users:
+  - name: Atleta
+    slug: atleta
+    height: 170
+    birth_date: "2000-01-01"
+    gender: female
+    is_athlete: false
+    last_known_weight: 70
+    weight_range: { min: 20, max: 250 }
+    exporters:
+      - type: intervals
+        athlete_id: i123456
+        api_key: ${INTERVALS_API_KEY}

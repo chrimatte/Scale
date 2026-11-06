@@ -1,0 +1,23 @@
+# Local credentials (examples are added only after review).
+.env
+.env.*
+
+# Machine files, dependencies and generated builds.
+.DS_Store
+node_modules/
+.build/
+/DerivedData/
+xcuserdata/
+*.xcuserstate
+/Scale.app/
+
+# Local profiles, weigh-ins, backups and compiler caches.
+# Keep the runtime manifest and lockfile so Node can be restored.
+/work/*
+!/work/runtime/
+/work/runtime/*
+!/work/runtime/package.json
+!/work/runtime/package-lock.json
+
+# Project notes kept locally.
+/PROJECT_MEMORY.md

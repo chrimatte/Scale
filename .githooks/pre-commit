@@ -1,0 +1,77 @@
+#!/usr/bin/env python3
+"""Read-only checks of the exact staged blobs, including an unborn branch."""
+import json
+import os
+from pathlib import Path
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+
+
+def git(*args):
+    return subprocess.check_output(["git", *args])
+
+
+def main():
+    os.chdir(os.fsdecode(git("rev-parse", "--show-toplevel").strip()))
+    if not shutil.which("gitleaks"):
+        print("Commit fermato: serve Gitleaks nel PATH. Vedi CONTRIBUTING.md.", file=sys.stderr)
+        return 1
+    whitespace = subprocess.run(
+        ["git", "diff", "--cached", "--check"], capture_output=True
+    )
+    if whitespace.returncode:
+        print("Commit fermato: whitespace non valido o conflitti nell'indice. Esegui git diff --cached --check localmente.", file=sys.stderr)
+        return 1
+
+    # A private export also works before the first commit; never follow symlinks.
+    with tempfile.TemporaryDirectory(prefix="scale-staged-") as temporary:
+        export = Path(temporary) / "files"
+        export.mkdir(mode=0o700)
+        for record in git("ls-files", "--stage", "-z").split(b"\0"):
+            if not record:
+                continue
+            metadata, raw_path = record.split(b"\t", 1)
+            mode, oid, stage = metadata.split()
+            path = os.fsdecode(raw_path)
+            if stage != b"0":
+                print("Commit fermato: conflitti non risolti nell'indice.", file=sys.stderr)
+                return 1
+            if mode == b"160000":  # The submodule has its own repository.
+                continue
+            relative = Path(path)
+            if relative.is_absolute() or ".." in relative.parts:
+                print("Commit fermato: percorso non valido nell'indice.", file=sys.stderr)
+                return 1
+            data = git("cat-file", "blob", oid.decode("ascii"))
+            if re.search(rb"^(?:<{7}|={7}|>{7})(?: |\r?$)", data, re.MULTILINE):
+                print("Commit fermato: possibili marcatori di conflitto in " + json.dumps(path), file=sys.stderr)
+                return 1
+            destination = export / relative
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            destination.write_bytes(data)
+
+        report = Path(temporary) / "report.json"
+        result = subprocess.run(
+            ["gitleaks", "dir", "--redact=100", "--no-banner", "--no-color",
+             "--report-format", "json", "--report-path", str(report), str(export)],
+            capture_output=True,
+        )
+        if result.returncode:
+            if result.returncode == 1 and report.exists():
+                findings = json.loads(report.read_text())
+                for finding in findings:
+                    filename = os.path.relpath(finding["File"], export)
+                    print("Possibile segreto: " + json.dumps(filename) + " (" + finding["RuleID"] + ")", file=sys.stderr)
+                print("Commit fermato: rivedi i file indicati; nessun valore sensibile viene stampato.", file=sys.stderr)
+            else:
+                print("Commit fermato: errore di esecuzione Gitleaks; scansione non completata.", file=sys.stderr)
+            return 1
+    print("Indice verificato: whitespace, conflitti e Gitleaks OK.")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -1,0 +1,3 @@
+[submodule "ble-scale-sync"]
+	path = ble-scale-sync
+	url = https://github.com/KristianP26/ble-scale-sync.git
