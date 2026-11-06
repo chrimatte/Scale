@@ -68,7 +68,7 @@ Il software è fornito senza garanzie, nei limiti consentiti dalla legge. L'auto
 
 ## Realizzazione
 
-Scale è stato implementato con l'assistenza di OpenAI Codex. L'icona è stata generata con l'ausilio di intelligenza artificiale.
+Scale è stato progettato e sviluppato con l'assistenza di [OpenAI Codex](https://openai.com/codex/). Il motore [ble-scale-sync](https://github.com/KristianP26/ble-scale-sync) è opera del progetto originale e dei suoi contributori. L'icona è stata generata con l'ausilio di intelligenza artificiale.
 
 ## Licenza
 
