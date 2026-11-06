@@ -1,4 +1,6 @@
-# Scale per Mac
+# Scale per Mac — da Renpho a Intervals.icu
+
+<img src="Scale-icona.png" alt="Icona di Scale: una bilancia stilizzata" width="120">
 
 Scale è un'interfaccia per macOS che rende più semplice usare [ble-scale-sync](https://github.com/KristianP26/ble-scale-sync), il motore Bluetooth sviluppato dal progetto originale. Consente di leggere il peso da una bilancia Renpho ES-CS20M e caricarlo automaticamente su Intervals.icu: dopo aver configurato il proprio account, l'utente avvia una pesata dall'app e Scale gestisce lettura, invio e verifica del salvataggio.
 
@@ -16,7 +18,14 @@ La modalità iniziale invia solo il peso. La stima del grasso è facoltativa e n
 
 ## Installazione da sorgente
 
-Da Terminale, clona il repository con il submodule. Usa l'URL del repository Scale dopo la sua pubblicazione; se hai già una copia senza submodule, esegui `git submodule update --init` dalla sua cartella. Poi, dalla radice del progetto:
+Da Terminale, clona il repository con il submodule:
+
+```sh
+git clone --recurse-submodules https://github.com/chrimatte/Scale.git
+cd Scale
+```
+
+Se hai già una copia senza submodule, esegui `git submodule update --init` dalla cartella del progetto. Poi, dalla radice:
 
 ```sh
 npm ci --prefix work/runtime
