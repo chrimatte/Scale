@@ -10,6 +10,12 @@ Scale è un progetto non ufficiale e non è affiliato né approvato da Renpho o 
 
 La modalità iniziale invia solo il peso. La stima del grasso è facoltativa e non corrisponde a una misurazione della bilancia. Scale rilegge il servizio dopo l'invio; più pesate nello stesso giorno aggiornano il record giornaliero.
 
+## Schermate
+
+| Pesata | Impostazioni |
+| --- | --- |
+| ![Schermata principale di Scale](docs/images/scale-pesata.png) | ![Impostazioni di Scale con dati personali oscurati](docs/images/scale-impostazioni.png) |
+
 ## Requisiti
 
 - Mac Apple Silicon con macOS 14 o successivo, Bluetooth e connessione Internet.
