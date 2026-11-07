@@ -125,6 +125,36 @@ final class ScaleTests: XCTestCase {
         XCTAssertEqual(model.pending?.weight, 74.4)
         XCTAssertFalse(model.busy)
     }
+    func testAdultBodyFatEstimateUsesProfileAndRejectsInvalidInput() {
+        XCTAssertEqual(ScaleProtocol.estimatedBodyFat(weight: 74.4, height: 170, age: 30, male: true), 21.6)
+        XCTAssertEqual(ScaleProtocol.estimatedBodyFat(weight: 74.4, height: 170, age: 30, male: false), 32.4)
+        XCTAssertNil(ScaleProtocol.estimatedBodyFat(weight: 74.4, height: 0, age: 30, male: true))
+        XCTAssertNil(ScaleProtocol.estimatedBodyFat(weight: 74.4, height: 170, age: 10, male: true))
+    }
+    @MainActor func testEstimatedFatSurvivesRelaunchAndAccountBinding() async throws {
+        let defaults = UserDefaults.standard
+        let previous = defaults.object(forKey: "estimateBodyFat")
+        defer { defaults.set(previous, forKey: "estimateBodyFat") }
+        defaults.set(true, forKey: "estimateBodyFat")
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let model = ScaleModel(storageDirectory: directory, uploader: { _ in })
+        model.athleteID = ""
+        model.bluetooth.onWeight?(74.4)
+        XCTAssertEqual(model.pending?.bodyFat, 21.6)
+        defaults.set(false, forKey: "estimateBodyFat")
+        let sent = expectation(description: "Saved fat shared")
+        let restored = ScaleModel(storageDirectory: directory, uploader: { reading in
+            XCTAssertEqual(reading.bodyFat, 21.6)
+            XCTAssertEqual(reading.athleteID, "i123")
+            sent.fulfill()
+        })
+        XCTAssertEqual(restored.bodyFat, 21.6)
+        restored.athleteID = "i123"
+        restored.shareConfirmed()
+        await fulfillment(of: [sent], timeout: 2)
+        XCTAssertTrue(restored.verified)
+    }
     func testWeightBounds() {
         for value in [Double.nan, Double.infinity, 0, -1, 301] { XCTAssertNil(ScaleProtocol.valid(value)) }
     }
@@ -138,15 +168,41 @@ final class ScaleTests: XCTestCase {
         let config = URLSessionConfiguration.ephemeral
         config.protocolClasses = [MockHTTP.self]
         MockHTTP.mismatch = false
+        MockHTTP.expectedFat = nil
+        MockHTTP.savedFat = nil
         MockHTTP.methods = []
         let client = IntervalsClient(athleteID: "i123", key: "synthetic-test-key", session: URLSession(configuration: config))
         try await client.upload(PendingReading(weight: 74.4, measuredAt: Date(), athleteID: "i123"))
         XCTAssertEqual(MockHTTP.methods, ["GET", "PUT", "GET"])
     }
+    func testBodyFatUploadAndReadback() async throws {
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [MockHTTP.self]
+        MockHTTP.mismatch = false
+        MockHTTP.expectedFat = 18.3
+        MockHTTP.savedFat = 18.3
+        defer { MockHTTP.expectedFat = nil; MockHTTP.savedFat = nil }
+        let client = IntervalsClient(athleteID: "i123", key: "synthetic-test-key", session: URLSession(configuration: config))
+        let reading = PendingReading(weight: 74.4, measuredAt: Date(), athleteID: "i123", bodyFat: 18.3)
+        try await client.upload(reading)
+        for saved in [nil, 18.0] as [Double?] {
+            MockHTTP.savedFat = saved
+            do {
+                try await client.upload(reading)
+                XCTFail("Missing or mismatched body fat must fail verification")
+            } catch { XCTAssertTrue(error.localizedDescription.contains("verification")) }
+        }
+    }
+    func testLegacyReadingRestoresWithoutBodyFat() throws {
+        let data = Data(#"{"weight":74.4,"measuredAt":0,"athleteID":"i123"}"#.utf8)
+        XCTAssertNil(try JSONDecoder().decode(PendingReading.self, from: data).bodyFat)
+    }
     func testReadbackMismatchIsFailure() async {
         let config = URLSessionConfiguration.ephemeral
         config.protocolClasses = [MockHTTP.self]
         MockHTTP.mismatch = true
+        MockHTTP.expectedFat = nil
+        MockHTTP.savedFat = nil
         let client = IntervalsClient(athleteID: "i123", key: "synthetic-test-key", session: URLSession(configuration: config))
         do {
             try await client.upload(PendingReading(weight: 74.4, measuredAt: Date(), athleteID: "i123"))
@@ -156,6 +212,8 @@ final class ScaleTests: XCTestCase {
 }
 
 final class MockHTTP: URLProtocol, @unchecked Sendable {
+    static var expectedFat: Double?
+    static var savedFat: Double?
     static var mismatch = false
     static var methods: [String] = []
     override class func canInit(with request: URLRequest) -> Bool { true }
@@ -175,9 +233,12 @@ final class MockHTTP: URLProtocol, @unchecked Sendable {
                 }
             }
             let json = try! JSONSerialization.jsonObject(with: data) as! [String: Double]
-            XCTAssertEqual(json, ["weight": 74.4]) // No bodyFat key, not even null.
+            var expected = ["weight": 74.4]
+            expected["bodyFat"] = Self.expectedFat
+            XCTAssertEqual(json, expected) // Omit bodyFat entirely for weight-only sharing.
         } else if request.url!.path.contains("wellness") {
             body = Self.mismatch ? "{\"weight\":70}" : "{\"weight\":74.4}"
+            if let fat = Self.savedFat { body = String(body.dropLast()) + ",\"bodyFat\":\(fat)}" }
         } else { body = "{\"timezone\":\"Europe/Rome\"}" }
         client?.urlProtocol(self, didReceive: HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!, cacheStoragePolicy: .notAllowed)
         client?.urlProtocol(self, didLoad: Data(body.utf8))

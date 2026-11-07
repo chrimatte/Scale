@@ -47,6 +47,10 @@ struct WeighInView: View {
                         .accessibilityElement(children: .ignore)
                         .accessibilityLabel("Weight")
                         .accessibilityValue(model.weight.map { "\($0.formatted()) kilograms" } ?? "No weight available")
+                        if let fat = model.bodyFat {
+                            Text("Estimated body fat: \(fat.formatted(.number.precision(.fractionLength(1))))%")
+                                .font(.subheadline).foregroundStyle(.secondary)
+                        }
                     }.padding(.vertical, 24)
                     VStack(alignment: .leading, spacing: 10) {
                         HStack {
@@ -99,7 +103,7 @@ struct WeighInView: View {
                         if model.busy { Button("Stop") { model.stop() }.frame(minHeight: 44) }
                     }
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("Weight only. Existing body fat on Intervals.icu stays unchanged.")
+                        Text("Enable estimated body fat in Settings to include it in new weigh-ins. Without it, existing body fat on Intervals.icu stays unchanged.")
                         Text("Close Renpho and Scale on your Mac. Keep this app open and your iPhone near the scale.")
                         Link("Open Intervals.icu ↗", destination: URL(string: "https://intervals.icu")!)
                     }.font(.footnote).foregroundStyle(.secondary)
@@ -116,7 +120,9 @@ struct WeighInView: View {
                 Button("Condividi") { model.shareConfirmed() }
                 Button("Non ora", role: .cancel) { }
             } message: {
-                Text("Il peso verrà inviato a Intervals.icu solo premendo Condividi.")
+                Text(model.pending?.bodyFat.map {
+                    "Verranno inviati il peso e la massa grassa stimata (\($0.formatted(.number.precision(.fractionLength(1))))%) solo premendo Condividi."
+                } ?? "Il peso verrà inviato a Intervals.icu solo premendo Condividi.")
             }
             .sheet(isPresented: $model.settingsPresented) { SettingsView(model: model) }
         }
@@ -130,6 +136,7 @@ struct SettingsView: View {
     @State private var key = ""
     @State private var saving = false
     @State private var error: String?
+    @AppStorage("estimateBodyFat") private var estimateBodyFat = false
     @AppStorage("height") private var height = 170.0
     @AppStorage("age") private var age = 30
     @AppStorage("sex") private var sex = "male"
@@ -143,13 +150,14 @@ struct SettingsView: View {
                     Text("Find your athlete ID and API key in Intervals.icu Settings → Developer. Leave the key blank to keep the saved one. Your key is stored in this iPhone’s Keychain.")
                 }
                 Section {
+                    Toggle("Include estimated body fat", isOn: $estimateBodyFat)
                     Stepper("Height: \(height.formatted()) cm", value: $height, in: 100...230, step: 1)
                     Stepper("Age: \(age)", value: $age, in: 18...100)
                     Picker("Renpho profile sex", selection: $sex) {
                         Text("Male").tag("male"); Text("Female").tag("female")
                     }
                 } header: { Text("Scale profile") } footer: {
-                    Text("Set these values before your first weigh-in. Some Renpho revisions need a guest profile to start measuring. Scale uploads weight only.")
+                    Text("Set these values before weighing. Optional body fat is estimated from weight, height, age and sex, not read from Renpho. Changes apply to new weigh-ins; saved readings keep their original values.")
                 }
                 if let error { Section { Text(error).foregroundStyle(.red) } }
                 Section {

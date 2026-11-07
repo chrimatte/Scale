@@ -34,8 +34,13 @@ xcodebuild -project Scale-iOS/Scale.xcodeproj -scheme Scale \
    save and verify, then return and explicitly share again. Weighing itself
    does not require an Intervals account or Internet access.
 
-Weight only is sent after explicit confirmation. Existing body fat is not
-cleared or changed. Further shared weigh-ins on the same athlete calendar day
+Weight is sent after explicit confirmation. Enable **Include estimated body fat**
+in Settings before a new weigh-in to save and share an estimated percentage too.
+Set height, age and sex correctly: the adult Deurenberg estimate uses these values
+and weight, and is not the value measured by Renpho. It is shown on the weigh-in
+screen and in the sharing confirmation, rounded to one decimal place. The option
+is off by default. Saved readings retain their original estimate across settings
+changes, relaunch and retries. Without an estimate, existing body fat is unchanged. Further shared weigh-ins on the same athlete calendar day
 replace that day's weight. Success is shown only after independent readback.
 A failed upload stays on the phone; retry requires another explicit confirmation.
 The original measurement date is retained. Retry can repeat an upload that
@@ -49,6 +54,28 @@ athlete. This prevents an accidental account change from moving a saved weight.
 Leaving the app during a weigh-in stops scanning/upload work and retains any
 pending weight. An in-flight request may already have updated Intervals.icu.
 Bluetooth access is requested only when starting a weigh-in.
+
+## How estimated body fat is calculated
+
+The optional iPhone estimate uses the measured weight and the height, age and sex
+entered in **Settings → Scale profile**. It applies the adult Deurenberg formula:
+
+```text
+BMI = weight in kg / (height in metres)²
+Body fat (%) = 1.20 × BMI + 0.23 × age − 10.8 × sex − 5.4
+```
+
+Here, age is in years and the formula’s sex coefficient is 1 for Male and 0 for
+Female. The iPhone implementation accepts ages 18–100 and heights 100–230 cm,
+clamps the result to 3–60%, and rounds it to one decimal place before saving and
+sharing it. These bounds are implementation limits, not a statement of accuracy.
+No athlete adjustment is applied.
+
+This is a formula-based estimate: **it does not use electrical impedance from the
+scale and does not read the body-fat percentage calculated by Renpho**. It can
+differ from the Renpho app’s value. An incorrect profile also changes the estimate.
+The calculation is implemented in `Sources/ScaleProtocol.swift`, following the
+adult Deurenberg fallback in the pinned ble-scale-sync source.
 
 ## Bluetooth scope and validation
 
@@ -83,14 +110,14 @@ Implemented from the pinned GPL-3.0 ble-scale-sync protocol sources:
   offline records are ignored. Frame lengths, checksums and weight bounds are
   validated before accepting connected readings.
 
-Other connected QN dialects (FFE0/FFF0), historical imports and estimated body
+Other connected QN dialects (FFE0/FFF0), historical imports and native Renpho body
 fat are not implemented in this first iPhone version. Unsupported characteristic
 layouts produce an explicit message. Bluetooth needs a real device: simulator
 success does not establish compatibility with a physical Renpho revision.
 The guest handshake and anonymous-device discovery still need hardware validation.
 
 Tests cover packet validation, stability, stored-record exclusion, power-off
-fallback, athlete time zones, weight-only HTTP payloads, independent readback,
+fallback, athlete time zones, weight-only and body-fat HTTP payloads, estimate persistence, independent readback,
 readback mismatch, capture/relaunch without upload, explicit sharing, failed sharing without automatic retry, and home/settings/sharing navigation. HTTP tests use synthetic data
 and never contact Intervals.icu. Manual hardware acceptance: compare the stable
 weight against the scale display, verify the correct daily Intervals record,
@@ -102,7 +129,7 @@ failure. VoiceOver and physical Bluetooth remain manual checks.
 The API key lives in this device's Keychain with unlocked-device access. Profile
 preferences are local. One pending weigh-in is stored with complete file
 protection and excluded from backup, then removed after successful verification.
-Only requested account/weight traffic goes to Intervals.icu. No telemetry or
+Only requested account/measurement traffic goes to Intervals.icu. No telemetry or
 analytics SDKs are included. No credentials are imported from the Mac.
 
 Protocol attribution: KristianP26/ble-scale-sync, pinned by the repository's

@@ -5,7 +5,7 @@ struct IntervalsClient {
     let key: String
     var session: URLSession = .shared
     struct Profile: Decodable { let timezone: String? }
-    struct Wellness: Decodable { let weight: Double? }
+    struct Wellness: Decodable { let weight: Double?; let bodyFat: Double? }
 
     func request(_ suffix: String = "", method: String = "GET", body: Data? = nil) async throws -> Data {
         guard athleteID.range(of: "^[A-Za-z0-9_-]+$", options: .regularExpression) != nil, !key.isEmpty else {
@@ -43,10 +43,20 @@ struct IntervalsClient {
         let profile = try await profile()
         let date = try Self.day(reading.measuredAt, zone: profile.timezone)
         let suffix = "/wellness/\(date)"
-        let body = try JSONSerialization.data(withJSONObject: ["weight": reading.weight])
+        var values = ["weight": reading.weight]
+        if let bodyFat = reading.bodyFat {
+            guard bodyFat.isFinite, (0...100).contains(bodyFat) else {
+                throw ScaleFailure(message: "The saved body fat percentage is invalid.")
+            }
+            values["bodyFat"] = bodyFat
+        }
+        let body = try JSONSerialization.data(withJSONObject: values)
         _ = try await request(suffix, method: "PUT", body: body)
         let saved = try JSONDecoder().decode(Wellness.self, from: await request(suffix))
-        guard let weight = saved.weight, abs(weight - reading.weight) <= 0.011 else {
+        let fatMatches = reading.bodyFat.map { expected in
+            saved.bodyFat.map { abs($0 - expected) <= 0.011 } ?? false
+        } ?? true
+        guard let weight = saved.weight, abs(weight - reading.weight) <= 0.011, fatMatches else {
             throw ScaleFailure(message: "Upload completed, but verification did not match. Check Intervals.icu before retrying.")
         }
     }

@@ -16,10 +16,11 @@ final class ScaleUITests: XCTestCase {
     }
     func testOptionalSharing() {
         let app = XCUIApplication()
-        app.launchArguments = ["--preview-weigh-in"]
+        app.launchArguments = ["--preview-weigh-in", "-estimateBodyFat", "YES"]
         app.launch()
         let question = app.alerts["Vuoi condividere il peso su Intervals?"]
         XCTAssertTrue(question.waitForExistence(timeout: 10))
+        XCTAssertTrue(question.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "massa grassa stimata")).firstMatch.exists)
         capture("Share confirmation")
         question.buttons["Non ora"].tap()
         XCTAssertTrue(app.staticTexts["Weigh-in complete"].exists)

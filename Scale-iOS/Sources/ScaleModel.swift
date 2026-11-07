@@ -3,6 +3,7 @@ import SwiftUI
 @MainActor final class ScaleModel: ObservableObject {
     @Published var athleteID = UserDefaults.standard.string(forKey: "athleteID") ?? ""
     @Published var weight: Double?
+    @Published var bodyFat: Double?
     @Published var title = "Ready to weigh in"
     @Published var message = "Wake your scale and start a weigh-in. Sharing is optional."
     @Published var busy = false
@@ -26,6 +27,7 @@ import SwiftUI
             if FileManager.default.fileExists(atPath: pendingURL.path) {
                 pending = try JSONDecoder().decode(PendingReading.self, from: Data(contentsOf: pendingURL))
                 weight = pending?.weight
+                bodyFat = pending?.bodyFat
                 title = "Weight saved on iPhone"
                 message = "Not shared in this session. You can choose to share this saved weigh-in."
             }
@@ -41,7 +43,7 @@ import SwiftUI
     var client: IntervalsClient { get throws { IntervalsClient(athleteID: athleteID, key: try KeychainStore.read()) } }
     func start() {
         guard !busy, pending == nil else { return }
-        verified = false; weight = nil; busy = true; scanning = true
+        verified = false; weight = nil; bodyFat = nil; busy = true; scanning = true
         title = "Looking for your Renpho"
         bluetooth.height = UserDefaults.standard.double(forKey: "height") == 0 ? 170 : UserDefaults.standard.double(forKey: "height")
         bluetooth.age = UserDefaults.standard.object(forKey: "age") == nil ? 30 : UserDefaults.standard.integer(forKey: "age")
@@ -53,7 +55,10 @@ import SwiftUI
         scanning = false
         UIApplication.shared.isIdleTimerDisabled = false
         weight = value
-        let reading = PendingReading(weight: value, measuredAt: Date(), athleteID: athleteID)
+        bodyFat = UserDefaults.standard.bool(forKey: "estimateBodyFat")
+            ? ScaleProtocol.estimatedBodyFat(weight: value, height: bluetooth.height, age: bluetooth.age, male: bluetooth.male)
+            : nil
+        let reading = PendingReading(weight: value, measuredAt: Date(), athleteID: athleteID, bodyFat: bodyFat)
         pending = reading
         do {
             try persist(reading)
@@ -90,7 +95,7 @@ import SwiftUI
         // when the user explicitly shares, then preserve that account on retries.
         let reading: PendingReading
         if pending.athleteID.isEmpty {
-            reading = PendingReading(weight: pending.weight, measuredAt: pending.measuredAt, athleteID: athleteID)
+            reading = PendingReading(weight: pending.weight, measuredAt: pending.measuredAt, athleteID: athleteID, bodyFat: pending.bodyFat)
         } else { reading = pending }
         if uploader == nil {
             do {

@@ -12,6 +12,13 @@ enum ScaleProtocol {
               b[2] == 0xaa, b[3] == 0xbb, b[17] & 0x20 != 0 else { return nil }
         return valid(Double(Int(b[19]) | Int(b[20]) << 8) / 100)
     }
+    // Adult Deurenberg fallback used by ble-scale-sync/body-comp-helpers.ts.
+    static func estimatedBodyFat(weight: Double, height: Double, age: Int, male: Bool) -> Double? {
+        guard valid(weight) != nil, height.isFinite, (100...230).contains(height), (18...100).contains(age) else { return nil }
+        let bmi = weight / pow(height / 100, 2)
+        let fat = 1.2 * bmi + 0.23 * Double(age) - (male ? 10.8 : 0) - 5.4
+        return (max(3, min(fat, 60)) * 10).rounded() / 10
+    }
     static func valid(_ weight: Double) -> Double? {
         weight.isFinite && (0.5...300).contains(weight) ? weight : nil
     }
@@ -40,6 +47,7 @@ struct PendingReading: Codable {
     let weight: Double
     let measuredAt: Date
     let athleteID: String
+    var bodyFat: Double? = nil
 }
 
 // Session state prevents an offline record or a power-off without live data

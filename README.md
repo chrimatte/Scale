@@ -15,7 +15,7 @@ The integration targets the Renpho ES-CS20M; supported protocol variants and val
 | Requirements | Apple Silicon, macOS 14 or later | iOS 26.5 or later; Xcode and development signing to install |
 | Bluetooth | Local [ble-scale-sync](https://github.com/KristianP26/ble-scale-sync) engine | Native Bluetooth connection; no Mac or Node.js needed during weighing |
 | Sharing | Uploads and verifies after starting a weigh-in | Saves locally; uploads and verifies only after confirmation |
-| Measurements | Weight; optional estimated body fat | Weight only |
+| Measurements | Weight; optional estimated body fat | Weight; optional estimated body fat |
 | Source and setup | [Scale-sources](Scale-sources/README.md) | [Scale-iOS](Scale-iOS/README.md) |
 
 Both apps are maintained in this repository, in separate source folders. The iPhone app is a development build, not an App Store release. See its [guide](Scale-iOS/README.md) for setup, supported Renpho variants and hardware validation limits. The Mac integration has not been verified with other scales supported by the engine.
@@ -44,7 +44,9 @@ Only weight is uploaded by default. You can enable estimated body fat: this is a
 2. Wait for the connection, then step on and stand still with Scale open. A stable reading is saved on the iPhone.
 3. Choose whether to share with Intervals.icu. You can keep the reading locally and share it later after configuring your account in Settings.
 
-Sharing sends weight only and leaves existing body fat unchanged. A new weigh-in replaces the one saved reading. See the [iPhone guide](Scale-iOS/README.md#first-weigh-in) for confirmation, retry and account behavior.
+Sharing sends weight and, when enabled in Settings before weighing, estimated body fat. Without an estimate, existing body fat stays unchanged. A new weigh-in replaces the one saved reading. See the [iPhone guide](Scale-iOS/README.md#first-weigh-in) for confirmation, retry and account behavior.
+
+On iPhone, estimated body fat uses weight, height, age and profile sex in the adult Deurenberg formula. It does **not** use the scale’s electrical impedance or read Renpho’s body-fat result. See [how the iPhone estimate is calculated](Scale-iOS/README.md#how-estimated-body-fat-is-calculated) for the formula and implementation limits.
 
 ## Mac requirements
 
