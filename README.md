@@ -8,6 +8,10 @@ The integration was developed for the Renpho ES-CS20M and has not been verified 
 
 [Install from source](#installation-from-source) · [How it works](#how-it-works) · [Privacy and data](#privacy-and-data) · [Development](CONTRIBUTING.md)
 
+## iPhone development
+
+A native iPhone version for iOS 26.5 or later is available in [Scale-iOS](Scale-iOS/README.md). It connects directly over Bluetooth and syncs weight with Intervals.icu. Hardware compatibility is pending a real-device weigh-in; see the mobile guide for supported protocol variants and installation.
+
 ## Screenshots
 
 | Weigh-in | Settings |
